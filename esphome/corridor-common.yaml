@@ -1,0 +1,128 @@
+esphome:
+  name: corridor-common
+  friendly_name: Corridor common
+
+esp8266:
+  board: esp01_1m
+  restore_from_flash: True
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "MhtdXsc7YpKP3dFqHCjlnx19p0tw2kc/mlppjEZ1NGc="
+
+ota:
+  - platform: esphome
+    password: "46388b0505357dcbe62e2bce0759cbcc"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Corridor-Common Fallback Hotspot"
+    password: "GgIBauEh3mxY"
+
+captive_portal:
+
+# PRODINo WIFI-ESP WROOM-02 V1 settings
+spi:
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  miso_pin: GPIO12
+
+mcp23s08:
+  - id: mcp23s08_hub
+    cs_pin: GPIO15
+    deviceaddress: 0
+
+button:
+  - platform: template
+    name: "Door Button"
+    id: door_button
+    on_press:
+      - switch.turn_on: door_relay
+      - delay: 15s
+      - switch.turn_off: door_relay
+      
+switch:
+  - platform: gpio
+    id: door_relay
+    name: "Door relay"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 4
+      mode: OUTPUT
+      inverted: False
+
+  - platform: gpio
+    id: ac_hot_relay
+    name: "AC Hot relay"
+    interlock: [ac_cold_relay]
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 5
+      mode: OUTPUT
+      inverted: False
+
+  - platform: gpio
+    id: ac_cold_relay
+    name: "AC Cold relay"
+    interlock: [ac_hot_relay]
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 6
+      mode: OUTPUT
+      inverted: False
+
+  - platform: gpio
+    id: relay4
+    name: "RELAY4"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 7
+      mode: OUTPUT
+      inverted: False
+
+binary_sensor:
+  - platform: gpio
+    id: door_sensor
+    name: "Door Sensor"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 0
+      mode: INPUT
+      inverted: True
+    on_press:
+      - switch.turn_off: door_relay
+
+  - platform: gpio
+    id: input2
+    name: "INPUT2"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 1
+      mode: INPUT
+      inverted: True
+
+  - platform: gpio
+    id: input3
+    name: "INPUT3"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 2
+      mode: INPUT
+      inverted: True
+
+  - platform: gpio
+    id: input4
+    name: "INPUT4"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 3
+      mode: INPUT
+      inverted: True

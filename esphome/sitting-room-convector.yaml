@@ -1,0 +1,310 @@
+esphome:
+  name: sitting-room-convector
+  friendly_name: Sittingroom convector
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "jAMcOKd0iooWgSMnU/yRn7NVDr0P6ae1pHsKjKxBzto="
+
+ota:
+  - platform: esphome
+    password: "448da565746d5a694f47ce36ad4f7cee"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Sitting-Room-Convector"
+    password: "GCzF5uGoSCLn"
+
+captive_portal:
+
+# KMP Electronics PRODINo ESP32 v1 device seetings & thermostat logic
+# SPI bus setings    
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
+# Expander config    
+mcp23s08:
+  - id: 'mcp23s08_hub'
+    cs_pin: GPIO32
+    deviceaddress: 0
+
+# Fan speed controled by relay1 (Low), relay2 (Medium) and relay3 (High)
+switch:
+  # - platform: gpio
+  #   name: "RELAY4"
+  #   pin:
+  #     mcp23xxx: mcp23s08_hub
+  #     # Use pin number 4
+  #     number: 4
+  #     mode: OUTPUT
+  #     inverted: False
+
+  - platform: gpio
+    name: "FunSpeed3"
+    id: relay3
+    interlock: [relay1, relay2]
+    interlock_wait_time: 500ms
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 5
+      number: 5
+      mode: OUTPUT
+      inverted: False 
+    disabled_by_default: True
+      
+  - platform: gpio
+    name: "FunSpeed2"     
+    id: relay2
+    interlock: [relay1, relay3]
+    interlock_wait_time: 500ms
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 6
+      number: 6
+      mode: OUTPUT
+      inverted: False 
+    disabled_by_default: True
+      
+  - platform: gpio
+    name: "FunSpeed1"     
+    id: relay1
+    interlock: [relay2, relay3]
+    interlock_wait_time: 500ms
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 7
+      number: 7
+      mode: OUTPUT
+      inverted: False
+    disabled_by_default: True
+
+  - platform: gpio
+    name: "BypassOn"
+    id: bypass_on
+    interlock: [bypass_off]
+    interlock_wait_time: 500ms
+    pin: GPIO13
+    on_turn_on:
+    - delay: 10s
+    - switch.turn_off: bypass_on
+    disabled_by_default: True
+
+  - platform: gpio
+    name: "BypassOff"
+    id: bypass_off
+    pin: GPIO14
+    interlock: [bypass_on]
+    interlock_wait_time: 500ms
+    on_turn_on:
+    - delay: 10s
+    - switch.turn_off: bypass_off
+    disabled_by_default: True
+
+# # RGB led on the board
+# light:
+#   - platform: neopixelbus
+#     name: "NeoPixel Light"
+#     id: statusLED
+#     pin: GPIO0
+#     type: GRB
+#     variant: WS2812X
+#     num_leds: 1
+
+# Set 1-Wire bus
+one_wire:
+  - platform: gpio
+    pin: GPIO21
+
+sensor:
+# Room themperature and humidity. DHT22 sensor
+  - platform: dht
+    pin: GPIO22
+    temperature:
+      name: "Temperature"
+      id: currentTemperature
+      filters:
+        - sliding_window_moving_average:
+            window_size: 10
+            send_every: 1
+    humidity:
+      name: "Humidity"
+      id: currentHumidity
+    update_interval: 30s
+
+# Fun coil temperature. 1-Wire DS18B20 sensor
+  - platform: dallas_temp
+    name: "Coil Temperature"
+    id: fanCoilTemperature
+    update_interval: 30s
+    resolution: 9
+
+globals: # Create global variable to be used later on
+  - id: ac_state # 0 - idle, 1 - heating, 2 - colling
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: current_relay_no # Store last running relay
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: current_bypass_state # Store last bypass state
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+# Home Assistant Climate Integration
+climate:
+  - platform: thermostat
+    id: room_thermostat
+    name: "Thermostat"
+    sensor: currentTemperature
+    humidity_sensor: currentHumidity
+    min_heating_run_time: 10s
+    min_heating_off_time: 10s
+    min_cooling_run_time: 10s
+    min_cooling_off_time: 10s
+    min_idle_time: 10s
+    on_boot_restore_from: MEMORY
+    visual:
+      min_temperature: 15
+      max_temperature: 30
+      temperature_step: 0.5
+    heat_action:
+      - lambda: |-
+          id(ac_state) = 1; // Heating
+    cool_action:
+      - lambda: |-
+          id(ac_state) = 2; // Cooling
+    idle_action:
+      - lambda: |-
+          id(ac_state) = 0; // Idle
+    default_preset: Home
+    preset:
+      - name: Home
+        default_target_temperature_low: 22 °C
+        default_target_temperature_high: 26 °C
+
+interval:
+  - interval: 30s
+    then:
+      - lambda: |-
+          bool new_bypass_state = id(current_bypass_state);
+          int new_relay_no = 0;
+          float currTemp = id(currentTemperature).state;
+          float targetTemp = id(room_thermostat).target_temperature;
+          float coilTemp = id(fanCoilTemperature).state;
+          // Process OFF mode. Implement prevent freezing functionality.
+          if(id(room_thermostat).mode == climate::CLIMATE_MODE_OFF)
+          {
+            // Prevent freezing from 3 degrees and stopped at 5 degrees
+            if (currTemp < 3.0) 
+            {
+              new_bypass_state = true;
+            } 
+            else
+            {
+              if (currTemp > 5.0) 
+              {
+                new_bypass_state = false;
+              }
+            }
+            new_relay_no = 0; // Off
+          }
+          // Process HEAT mode
+          if(id(room_thermostat).mode == climate::CLIMATE_MODE_HEAT)
+          {
+            // Bypass logic. on/off heating
+            // If current t is > target t with 1° switch off bypass and stop heating
+            // Example: (23.0 >= (22.0 + 1.0))
+            if (currTemp >= (targetTemp + 1))
+            {
+              new_bypass_state = false;
+            }
+            else
+            {
+              // If current t is < target t with 0.2° switch on bypass and start heating
+              // Example: ((22.2 - 0.2) <= 22.0)
+              if ((currTemp - 0.2) <= targetTemp)
+              {
+                new_bypass_state = true;
+              }
+            }
+            // Relays logic. Heating degree: stop, low, medium, high
+            // If current t is <= target t with 1° 
+            //   AND current t is <= coil t with 15° set to high
+            if (currTemp +  1.0 <= targetTemp &&
+                currTemp + 15.0 <= coilTemp) 
+            {
+              new_relay_no = 3;
+            }
+            else 
+            {
+              // If current t is <= target t with 0.5° 
+              //   AND current t is <= coil t with 10° set to medium
+              if (currTemp +  0.5 <= targetTemp &&
+                  currTemp + 10.0 <= coilTemp) 
+              {
+                new_relay_no = 2;
+              }
+              else 
+              {
+                // If current t is < target t diffrence is 0 to 0.5°
+                //   AND current t is < coil t with 5° set to low
+                if (currTemp       <  targetTemp &&
+                    currTemp + 5.0 <= coilTemp) 
+                {
+                  new_relay_no = 1;
+                }
+              }
+            }
+          }
+          // Process COOL mode
+          if(id(room_thermostat).mode == climate::CLIMATE_MODE_COOL)
+          {
+            // TBD
+          }
+          // Process decisions
+          if(new_bypass_state != id(current_bypass_state))
+          {
+            if(new_bypass_state)
+              id(bypass_on).turn_on();
+            else
+              id(bypass_off).turn_on();
+            id(current_bypass_state) = new_bypass_state;
+          }
+          if(new_relay_no != id(current_relay_no))
+          {
+            switch (new_relay_no){
+              case 1:
+                id(relay1).turn_on();
+                break;
+              case 2:
+                id(relay2).turn_on();
+                break;
+              case 3:
+                id(relay3).turn_on();
+                break;
+              default: // Turn off all relays
+                id(relay1).turn_off();
+                id(relay2).turn_off();
+                id(relay3).turn_off();                
+                break;
+            }
+            id(current_relay_no) = new_relay_no;
+          }
+          ESP_LOGD("my_process", "climate_mode:%d ac_state:%d relay_no:%d bypass_state:%d", id(room_thermostat).mode, id(ac_state), id(current_relay_no), id(current_bypass_state));

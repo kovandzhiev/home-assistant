@@ -1,0 +1,175 @@
+- id: '1737553922481'
+  alias: 17:00 часа
+  description: ''
+  triggers:
+  - trigger: time
+    at: '17:00:00'
+  conditions: []
+  actions:
+  - action: climate.set_temperature
+    metadata: {}
+    data:
+      target_temp_low: 22.5
+      target_temp_high: 30
+    target:
+      device_id:
+      - e74f98fe295ea89c5a2b564f9093e334
+      - 21b48e87f398cf67b593d3c8c4996c70
+      - ef0ce10253cd7aba86b35a14bcc2b78a
+      - 1ec94637b80dc497741037badab63e1e
+      - 3d65be1c5bcfa9252786eb3a980dcfc6
+  mode: single
+- id: '1738487604336'
+  alias: 09:00 часа събота и неделя
+  description: ''
+  triggers:
+  - trigger: time
+    at: 09:00:00
+  conditions:
+  - condition: time
+    weekday:
+    - sat
+    - sun
+  actions:
+  - action: climate.set_temperature
+    metadata: {}
+    data:
+      target_temp_high: 30
+      target_temp_low: 22.5
+    target:
+      device_id:
+      - e74f98fe295ea89c5a2b564f9093e334
+      - 21b48e87f398cf67b593d3c8c4996c70
+      - ef0ce10253cd7aba86b35a14bcc2b78a
+      - 1ec94637b80dc497741037badab63e1e
+      - 3d65be1c5bcfa9252786eb3a980dcfc6
+  mode: single
+- id: '1738671422892'
+  alias: 07:30 часа ПВСЧП
+  description: ''
+  triggers:
+  - trigger: time
+    at: 07:30:00
+  conditions:
+  - condition: time
+    weekday:
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+  actions:
+  - action: climate.set_temperature
+    metadata: {}
+    data:
+      target_temp_high: 30
+      target_temp_low: 22.5
+    target:
+      device_id: 21b48e87f398cf67b593d3c8c4996c70
+  mode: single
+- id: '1738780554957'
+  alias: 21:00 часа
+  description: Настройва вечерна t на спалните в 21:00
+  triggers:
+  - trigger: time
+    at: '21:00:00'
+  conditions: []
+  actions:
+  - action: climate.set_temperature
+    metadata: {}
+    data:
+      target_temp_low: 19
+      target_temp_high: 30
+    target:
+      device_id:
+      - 21b48e87f398cf67b593d3c8c4996c70
+      - 1ec94637b80dc497741037badab63e1e
+  - action: climate.set_temperature
+    metadata: {}
+    data:
+      target_temp_low: 17
+      target_temp_high: 30
+    target:
+      device_id:
+      - e74f98fe295ea89c5a2b564f9093e334
+      - ef0ce10253cd7aba86b35a14bcc2b78a
+      - 3d65be1c5bcfa9252786eb3a980dcfc6
+  mode: single
+- id: '1740672136183'
+  alias: 09:00 часа празник
+  description: ''
+  triggers:
+  - trigger: time
+    at: 09:00:00
+  conditions:
+  - condition: time
+    weekday:
+    - sat
+    - sun
+    - fri
+    - thu
+    - wed
+    - tue
+    - mon
+  actions:
+  - action: climate.set_temperature
+    metadata: {}
+    data:
+      target_temp_high: 30
+      target_temp_low: 22.5
+    target:
+      device_id:
+      - e74f98fe295ea89c5a2b564f9093e334
+      - 21b48e87f398cf67b593d3c8c4996c70
+      - ef0ce10253cd7aba86b35a14bcc2b78a
+      - 1ec94637b80dc497741037badab63e1e
+      - 3d65be1c5bcfa9252786eb3a980dcfc6
+  mode: single
+- id: '1742238727120'
+  alias: 22:00 часа
+  description: ''
+  triggers:
+  - trigger: time
+    at: '22:00:00'
+  conditions: []
+  actions:
+  - type: turn_on
+    device_id: f224ffcfee2c73ff1ed7cb1d7d0f35ff
+    entity_id: f261b502f599a1b7b776b7ed8070f91b
+    domain: switch
+  - type: turn_on
+    device_id: 15d93aa0c2419d6308ca66f15ac335e8
+    entity_id: a1fd3ae81ec1d5a46c30610a081a6e4c
+    domain: switch
+  mode: single
+- id: '1742239704986'
+  alias: 06:00 часа
+  description: ''
+  triggers:
+  - trigger: time
+    at: 06:00:00
+  conditions: []
+  actions:
+  - type: turn_off
+    device_id: f224ffcfee2c73ff1ed7cb1d7d0f35ff
+    entity_id: f261b502f599a1b7b776b7ed8070f91b
+    domain: switch
+  - type: turn_off
+    device_id: 15d93aa0c2419d6308ca66f15ac335e8
+    entity_id: a1fd3ae81ec1d5a46c30610a081a6e4c
+    domain: switch
+  mode: single
+- id: '1746177810944'
+  alias: Turn on corridor light when some door is open
+  description: Включи лампата в коридора, когато някоя от вратите се отвори
+  triggers:
+  - entity_id:
+    - binary_sensor.corridor_common_door_sensor
+    trigger: state
+  conditions: []
+  actions:
+  - target:
+      entity_id: light.corridor_lights_main_light
+    action: light.turn_on
+    data: {}
+  mode: single

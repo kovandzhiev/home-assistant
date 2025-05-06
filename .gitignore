@@ -1,0 +1,31 @@
+# Ignore temp and security files
+secrets.yaml
+*.db
+*.log
+*.log.*
+home-assistant_v2.db*
+storage/
+__pycache__/
+esphome/.pioenvs/
+esphome/.esphome/
+esphome/build/
+
+# Backup файлове
+*.bak
+*.tmp
+*.swp
+*.swo
+
+# VSCode / IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Python cache
+*.pyc
+*.pyo
+*.pyd
+
+# Git
+.git/

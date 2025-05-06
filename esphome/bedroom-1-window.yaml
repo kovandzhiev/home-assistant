@@ -1,0 +1,143 @@
+esphome:
+  name: bedroom-1-window
+  friendly_name: Bedroom 1 window
+
+esp8266:
+  board: esp01_1m
+  restore_from_flash: True
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "x1BYzfgWxQcXfClOm9/ravk9+J+dSvE6VFAtxUYV3Hs="
+
+ota:
+  - platform: esphome
+    password: "f2436c8d3727e64986d832cc79df5f9a"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Bedroom-1-Window"
+    password: "F8CVfW2m5aOQ"
+
+captive_portal:
+
+spi:
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  miso_pin: GPIO12
+
+mcp23s08:
+  - id: 'mcp23s08_hub'
+    cs_pin: GPIO15
+    deviceaddress: 0
+
+# PRODINo WIFI-ESP WROOM-02 V1 settings
+switch:
+  - platform: gpio
+    id: relay_open # Relay1
+    name: "RELAY1"
+    interlock: [relay_close]
+    interlock_wait_time: 500ms
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 4
+      mode: OUTPUT
+      inverted: False
+
+  - platform: gpio
+    id: relay_close # Relay2
+    interlock: [relay_open]
+    interlock_wait_time: 500ms
+    name: "RELAY2"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 5
+      mode: OUTPUT
+      inverted: False
+
+  - platform: gpio
+    id: relay3
+    name: "RELAY3"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 6
+      mode: OUTPUT
+      inverted: False
+
+  - platform: gpio
+    id: relay4
+    name: "RELAY4"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 7
+      mode: OUTPUT
+      inverted: False
+
+binary_sensor:
+  - platform: gpio
+    id: input1
+    name: "INPUT1"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 0
+      mode: INPUT
+      inverted: True
+
+  - platform: gpio
+    id: input2
+    name: "INPUT2"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 1
+      mode: INPUT
+      inverted: True
+
+  - platform: gpio
+    id: input3
+    name: "INPUT3"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 3
+      mode: INPUT
+      inverted: True
+
+  - platform: gpio
+    id: input4
+    name: "INPUT4"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      number: 2
+      mode: INPUT
+      inverted: True
+
+# >>> Windows opener logic
+cover:
+  - platform: time_based
+    name: "Window"
+    id: window
+    open_action:
+      - switch.turn_on: relay_open
+    open_duration: 23s
+    close_action:
+      - switch.turn_on: relay_close
+    close_duration: 25s
+    stop_action:
+      - switch.turn_off: relay_open
+      - switch.turn_off: relay_close
+    # Add extra time + 5s when the window is fully opened and closed
+    on_open:
+      - switch.turn_on: relay_open
+      - delay: 5s
+      - switch.turn_off: relay_open
+    on_closed:
+      - switch.turn_on: relay_close
+      - delay: 5s
+      - switch.turn_off: relay_close
