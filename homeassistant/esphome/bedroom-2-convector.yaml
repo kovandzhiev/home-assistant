@@ -302,7 +302,7 @@ interval:
               default: // Turn off all relays
                 id(relay1).turn_off();
                 id(relay2).turn_off();
-                id(relay3).turn_off();                
+                id(relay3).turn_off();
                 break;
             }
             id(current_relay_no) = new_relay_no;

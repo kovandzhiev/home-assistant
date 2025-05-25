@@ -39,9 +39,13 @@ globals: # Create global variable to be used later on
     type: int
     restore_value: yes
     initial_value: '0'
+  - id: climate_lockout_active_state
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
 
-# KMP Electronics PRODINo ESP32 v1 device seetings & thermostat logic
-# SPI bus setings
+# KMP Electronics PRODINo ESP32 v1 device settings & thermostat logic
+# SPI bus settings
 spi:
   clk_pin: GPIO18
   mosi_pin: GPIO23
@@ -53,7 +57,7 @@ mcp23s08:
     cs_pin: GPIO32
     deviceaddress: 0
 
-# Fan speed controled by relay1 (Low), relay2 (Medium) and relay3 (High)
+# Fan speed controlled by relay1 (Low), relay2 (Medium) and relay3 (High)
 switch:
   # - platform: gpio
   #   name: "RELAY4"
@@ -63,6 +67,21 @@ switch:
   #     number: 4
   #     mode: OUTPUT
   #     inverted: False
+
+  # Stop convector if some windows and doors are opened
+  - platform: template
+    id: night_time
+    name: "Climate lockout active"
+    lambda: |-
+      return id(climate_lockout_active_state);
+    turn_on_action:
+      - logger.log: "Climate lockout is activated"
+      - lambda: |-
+          id(climate_lockout_active_state) = true;
+    turn_off_action:
+      - logger.log: "Climate lockout is deactivated"
+      - lambda: |-
+          id(climate_lockout_active_state) = false; // Day time is set
 
   # Fan speed control
   - platform: gpio
@@ -161,7 +180,7 @@ select:
             id(relay2).turn_off();
             id(relay3).turn_off();
           }
-          // Swich on v (selected)
+          // Switch on v (selected)
           if (v == 1) id(relay1).turn_on();
           else if (v == 2) id(relay2).turn_on();
           else if (v == 3) id(relay3).turn_on();
@@ -226,7 +245,7 @@ climate:
     cool_action:
       - logger.log: "Cool"
     idle_action:
-      - logger.log: "Ideling"
+      - logger.log: "Idle"
     default_preset: Home
     preset:
       - name: Home
@@ -243,19 +262,31 @@ interval:
           int funSpeed = atoi(id(fun_speed).state.c_str());
           bool bypassState = id(bypass).state;
           int thermostatAction = id(room_thermostat).action;
+          bool climateLockoutActive = id(climate_lockout_active_state);
 
           ESP_LOGD("climate_ctrl",
-            "Mode:%d | Action:%d | Fun:%d | Bypass:%d | Curr:%.1f | Target:%.1f | Coil:%.1f",
+            "Mode:%d | Action:%d | Fun:%d | Bypass:%d | Curr:%.1f | Target:%.1f | Coil:%.1f | ClimateLockout:%d",
             id(room_thermostat).mode, thermostatAction, funSpeed, bypassState,
-            currTemp, targetTemp, coilTemp);
+            currTemp, targetTemp, coilTemp, climateLockoutActive);
           
-          // Anti freezing functionality
+          // 🧊 Anti freezing functionality
           if(currTemp < 4.0) {
             if (bypassState != 1) id(bypass).turn_on();
             return;
           }
+          
+          // 🔒 Climate Lockout check
+          if (climateLockoutActive) {
+            if (funSpeed != 0) {
+              auto call = id(fun_speed).make_call();
+              call.set_option("0");
+              call.perform();
+            }
 
-          // Default is Heating calculations
+            if (bypassState != 0) id(bypass).turn_off();
+            return;
+          }
+
           float dTt = 0.0;
           float dTf = 0.0;
           if(thermostatAction == climate::CLIMATE_ACTION_HEATING) {
@@ -273,7 +304,8 @@ interval:
               if (bypassState != 1) id(bypass).turn_on();
               if(dTt >= 1.0 && dTf >= 15.0) new_fan_speed = 3;
               else if(dTt >= 0.5 && dTf >= 10.0) new_fan_speed = 2;
-              else if(dTt >= 0.0 && dTf >= 5.0) new_fan_speed = 1;
+              //else if(dTt >= 0.0 && dTf >= 5.0) new_fan_speed = 1;
+              else if(dTf >= 5.0) new_fan_speed = 1;
 
               if (funSpeed != new_fan_speed) {
                 std::string opt = std::to_string(new_fan_speed);
