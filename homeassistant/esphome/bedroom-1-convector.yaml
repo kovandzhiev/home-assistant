@@ -70,7 +70,7 @@ switch:
 
   # Stop convector if some windows and doors are opened
   - platform: template
-    id: night_time
+    id: climate_lockout_active
     name: "Climate lockout active"
     lambda: |-
       return id(climate_lockout_active_state);
@@ -230,12 +230,16 @@ climate:
     name: "Thermostat"
     sensor: currentTemperature
     humidity_sensor: currentHumidity
-    min_heating_run_time: 10s
-    min_heating_off_time: 10s
-    min_cooling_run_time: 10s
-    min_cooling_off_time: 10s
-    min_idle_time: 10s
+    min_heating_run_time: 5min
+    min_heating_off_time: 5min
+    min_cooling_run_time: 5min
+    min_cooling_off_time: 5min
+    min_idle_time: 5min
     on_boot_restore_from: MEMORY
+    cool_deadband: 0.2
+    cool_overrun: 0.1
+    heat_deadband: 0.2
+    heat_overrun: 0.1
     visual:
       min_temperature: 15
       max_temperature: 30
@@ -251,6 +255,7 @@ climate:
       - name: Home
         default_target_temperature_low: 22 °C
         default_target_temperature_high: 26 °C
+        mode: HEAT_COOL
 
 interval:
   - interval: 30s
