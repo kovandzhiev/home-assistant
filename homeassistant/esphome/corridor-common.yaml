@@ -82,6 +82,7 @@ switch:
   - platform: gpio
     id: relay4
     name: "RELAY4"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 7
@@ -103,6 +104,7 @@ binary_sensor:
   - platform: gpio
     id: input2
     name: "INPUT2"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 1
@@ -112,6 +114,7 @@ binary_sensor:
   - platform: gpio
     id: input3
     name: "INPUT3"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 2
@@ -121,6 +124,7 @@ binary_sensor:
   - platform: gpio
     id: input4
     name: "INPUT4"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 3

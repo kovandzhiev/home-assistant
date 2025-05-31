@@ -173,51 +173,13 @@
     action: light.turn_on
     data: {}
   mode: single
-- id: '1747556219892'
-  alias: AC Control by Convector Actions
-  description: 'Сравнява броя конвектори в heating vs. cooling и включва съответното
-    relay в corridor-common.
-
-    '
-  triggers:
-  - entity_id:
-    - sensor.heating_convectors
-    - sensor.cooling_convectors
-    trigger: state
-  conditions: []
-  actions:
-  - choose:
-    - conditions:
-      - condition: template
-        value_template: "{{ states('sensor.heating_convectors')|int\n   > states('sensor.cooling_convectors')|int
-          }}\n"
-      sequence:
-      - target:
-          entity_id: switch.corridor_common_ac_hot_relay
-        action: switch.turn_on
-        data: {}
-    - conditions:
-      - condition: template
-        value_template: "{{ states('sensor.cooling_convectors')|int\n   > states('sensor.heating_convectors')|int
-          }}\n"
-      sequence:
-      - target:
-          entity_id: switch.corridor_common_ac_cold_relay
-        action: switch.turn_on
-        data: {}
-    default:
-    - target:
-        entity_id:
-        - switch.corridor_common_ac_hot_relay
-        - switch.corridor_common_ac_cold_relay
-      action: switch.turn_off
-      data: {}
 - id: '1748371640996'
   alias: Climate Lockout Bedroom 1
   triggers:
   - entity_id:
     - cover.bedroom_1_window_window
     - binary_sensor.bedroom_1_window_input1
+    - sensor.altherma_climatecontrol_outdoor_temperature
     trigger: state
   conditions: []
   actions:
@@ -250,4 +212,98 @@
         entity_id: switch.bedroom_1_convector_climate_lockout_active
       action: switch.turn_off
       data: {}
+  mode: single
+- id: '1748703297969'
+  alias: Manage AC Relays Based on Climate Actions
+  description: ''
+  triggers:
+  - entity_id:
+    - climate.bedroom_1_convector_thermostat
+    - climate.bedroom_2_convector_thermostat
+    - climate.corridor_convector_thermostat
+    - climate.sitting_room_convector_thermostat
+    - climate.living_room_convector_thermostat
+    attribute: hvac_action
+    trigger: state
+  - entity_id:
+    - switch.bedroom_1_convector_climate_lockout_active
+    - switch.bedroom_2_convector_climate_lockout_active
+    - switch.corridor_convector_climate_lockout_active
+    - switch.sitting_room_convector_climate_lockout_active
+    - switch.living_room_convector_climate_lockout_active
+    trigger: state
+  actions:
+  - variables:
+      heating_active: "{{\n  (state_attr('climate.bedroom_1_convector_thermostat',
+        'hvac_action') == 'heating' and is_state('switch.bedroom_1_convector_climate_lockout_active',
+        'off')) or\n  (state_attr('climate.bedroom_2_convector_thermostat', 'hvac_action')
+        == 'heating' and is_state('switch.bedroom_2_convector_climate_lockout_active',
+        'off')) or\n  (state_attr('climate.corridor_convector_thermostat', 'hvac_action')
+        == 'heating' and is_state('switch.corridor_convector_climate_lockout_active',
+        'off')) or\n  (state_attr('climate.sitting_room_convector_thermostat', 'hvac_action')
+        == 'heating' and is_state('switch.sitting_room_convector_climate_lockout_active',
+        'off')) or\n  (state_attr('climate.living_room_convector_thermostat', 'hvac_action')
+        == 'heating' and is_state('switch.living_room_convector_climate_lockout_active',
+        'off'))\n}}\n"
+      cooling_active: "{{\n  (state_attr('climate.bedroom_1_convector_thermostat',
+        'hvac_action') == 'cooling' and is_state('switch.bedroom_1_convector_climate_lockout_active',
+        'off')) or\n  (state_attr('climate.bedroom_2_convector_thermostat', 'hvac_action')
+        == 'cooling' and is_state('switch.bedroom_2_convector_climate_lockout_active',
+        'off')) or\n  (state_attr('climate.corridor_convector_thermostat', 'hvac_action')
+        == 'cooling' and is_state('switch.corridor_convector_climate_lockout_active',
+        'off')) or\n  (state_attr('climate.sitting_room_convector_thermostat', 'hvac_action')
+        == 'cooling' and is_state('switch.sitting_room_convector_climate_lockout_active',
+        'off')) or\n  (state_attr('climate.living_room_convector_thermostat', 'hvac_action')
+        == 'cooling' and is_state('switch.living_room_convector_climate_lockout_active',
+        'off'))\n}}\n"
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ heating_active and not cooling_active }}'
+      - condition: state
+        entity_id: switch.corridor_common_ac_hot_relay
+        state: 'off'
+      sequence:
+      - target:
+          entity_id: switch.corridor_common_ac_hot_relay
+        action: switch.turn_on
+      - target:
+          entity_id: switch.corridor_common_ac_cold_relay
+        action: switch.turn_off
+    - conditions:
+      - condition: template
+        value_template: '{{ cooling_active and not heating_active }}'
+      - condition: state
+        entity_id: switch.corridor_common_ac_cold_relay
+        state: 'off'
+      sequence:
+      - target:
+          entity_id: switch.corridor_common_ac_cold_relay
+        action: switch.turn_on
+      - target:
+          entity_id: switch.corridor_common_ac_hot_relay
+        action: switch.turn_off
+    - conditions:
+      - condition: template
+        value_template: '{{ heating_active and cooling_active }}'
+      sequence:
+      - target:
+          entity_id:
+          - switch.corridor_common_ac_hot_relay
+          - switch.corridor_common_ac_cold_relay
+        action: switch.turn_off
+      - data:
+          message: ⚠️ Both heating and cooling are requested simultaneously. Relays
+            turned OFF to avoid conflict.
+          level: warning
+        action: system_log.write
+    - conditions:
+      - condition: template
+        value_template: '{{ not heating_active and not cooling_active }}'
+      sequence:
+      - target:
+          entity_id:
+          - switch.corridor_common_ac_hot_relay
+          - switch.corridor_common_ac_cold_relay
+        action: switch.turn_off
   mode: single
