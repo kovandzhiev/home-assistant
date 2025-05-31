@@ -81,6 +81,7 @@ switch:
   - platform: gpio
     id: relay2
     name: "RELAY2"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 5
@@ -90,6 +91,7 @@ switch:
   - platform: gpio
     id: relay3
     name: "RELAY3"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 6
@@ -99,6 +101,7 @@ switch:
   - platform: gpio
     id: relay4
     name: "RELAY4"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 7
@@ -107,8 +110,9 @@ switch:
 
 binary_sensor:
   - platform: gpio
-    id: pir_sensor
-    name: "PIR Sensor"
+    id: pir_sensor_short
+    name: "PIR Sensor short"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 0
@@ -118,8 +122,9 @@ binary_sensor:
       - script.execute: light_timer
 
   - platform: gpio
-    id: door_sensor
-    name: "Door Sensor"
+    id: pir_sensor_long
+    name: "PIR Sensor long"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 1
@@ -131,6 +136,7 @@ binary_sensor:
   - platform: gpio
     id: input3
     name: "INPUT3"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 2
@@ -140,6 +146,7 @@ binary_sensor:
   - platform: gpio
     id: input4
     name: "INPUT4"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 3

@@ -88,6 +88,7 @@ switch:
   - platform: gpio
     id: relay3
     name: "RELAY3"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 6
@@ -97,6 +98,7 @@ switch:
   - platform: gpio
     id: relay4
     name: "RELAY4"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 7
@@ -107,6 +109,7 @@ binary_sensor:
   - platform: gpio
     id: pir_sensor
     name: "PIR Sensor"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 0
@@ -118,6 +121,7 @@ binary_sensor:
   - platform: gpio
     id: door_sensor
     name: "Door Sensor"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 1
@@ -128,6 +132,7 @@ binary_sensor:
   - platform: gpio
     id: fan_button
     name: "Fan Button"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 2
@@ -139,6 +144,7 @@ binary_sensor:
   - platform: gpio
     id: input4
     name: "INPUT4"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 3

@@ -10,7 +10,7 @@
     metadata: {}
     data:
       target_temp_low: 22.5
-      target_temp_high: 30
+      target_temp_high: 26.5
     target:
       device_id:
       - e74f98fe295ea89c5a2b564f9093e334
@@ -212,3 +212,42 @@
         - switch.corridor_common_ac_cold_relay
       action: switch.turn_off
       data: {}
+- id: '1748371640996'
+  alias: Climate Lockout Bedroom 1
+  triggers:
+  - entity_id:
+    - cover.bedroom_1_window_window
+    - binary_sensor.bedroom_1_window_input1
+    trigger: state
+  conditions: []
+  actions:
+  - variables:
+      window_pos: '{{ state_attr(''cover.bedroom_1_window_window'', ''current_position'')
+        | float(0) }}'
+      outdoor_temp: '{{ states(''sensor.altherma_climatecontrol_outdoor_temperature'')
+        | float(0) }}'
+      window_sensor: '{{ is_state(''binary_sensor.bedroom_1_window_input1'', ''on'')
+        }}'
+      should_lockout: "{{ (window_pos > 25 and outdoor_temp > 26)\n   or (window_pos
+        > 0 and outdoor_temp <= 26)\n   or window_sensor }}"
+  - data:
+      name: Climate Lockout Check
+      message: 'Прозорец: {{ window_pos }}%, Външна T: {{ outdoor_temp }}°C, Сензор:
+        {{ window_sensor }}, Lockout: {{ ''ON'' if should_lockout else ''OFF'' }}'
+      entity_id: switch.bedroom_1_convector_climate_lockout_active
+    action: logbook.log
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ should_lockout }}'
+      sequence:
+      - target:
+          entity_id: switch.bedroom_1_convector_climate_lockout_active
+        action: switch.turn_on
+        data: {}
+    default:
+    - target:
+        entity_id: switch.bedroom_1_convector_climate_lockout_active
+      action: switch.turn_off
+      data: {}
+  mode: single
