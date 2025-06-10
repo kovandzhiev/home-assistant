@@ -264,7 +264,8 @@ interval:
     then:
       - lambda: |-
           float currTemp = id(currentTemperature).state;
-          float targetTemp = id(room_thermostat).target_temperature;
+          float targetTempLow = id(room_thermostat).target_temperature_low;
+          float targetTempHigh = id(room_thermostat).target_temperature_high;
           float coilTemp = id(fanCoilTemperature).state;
           int funSpeed = atoi(id(fun_speed).state.c_str());
           bool bypassState = id(bypass).state;
@@ -272,9 +273,9 @@ interval:
           bool climateLockoutActive = id(climate_lockout_active_state);
 
           ESP_LOGD("climate_ctrl",
-            "Mode:%d | Action:%d | Fun:%d | Bypass:%d | Curr:%.1f | Target:%.1f | Coil:%.1f | ClimateLockout:%d",
+            "Mode:%d | Action:%d | Fun:%d | Bypass:%d | Curr:%.1f | Target:%.1f L %.1f H  | Coil:%.1f | ClimateLockout:%d",
             id(room_thermostat).mode, thermostatAction, funSpeed, bypassState,
-            currTemp, targetTemp, coilTemp, climateLockoutActive);
+            currTemp, targetTempLow, targetTempHigh, coilTemp, climateLockoutActive);
           
           // 🧊 Anti freezing functionality
           if(currTemp < 4.0) {
@@ -297,13 +298,14 @@ interval:
           float dTt = 0.0;
           float dTf = 0.0;
           if(thermostatAction == climate::CLIMATE_ACTION_HEATING) {
-            dTt = targetTemp - currTemp;
+            dTt = targetTempLow - currTemp;
             dTf = coilTemp - currTemp;
           }
-          else { // climate::CLIMATE_ACTION_COOLING
-            dTt = currTemp - targetTemp;
+          if(thermostatAction == climate::CLIMATE_ACTION_COOLING) {
+            dTt = currTemp - targetTempHigh;
             dTf = currTemp - coilTemp;
           }
+
           if( thermostatAction == climate::CLIMATE_ACTION_HEATING ||
               thermostatAction == climate::CLIMATE_ACTION_COOLING) 
           {
@@ -322,17 +324,22 @@ interval:
               }
               return;
           }
+          // https://api-docs.esphome.io/climate__mode_8h_source
+          // CLIMATE_ACTION_OFF, CLIMATE_ACTION_COOLING, CLIMATE_ACTION_HEATING, CLIMATE_ACTION_IDLE, CLIMATE_ACTION_DRYING, CLIMATE_ACTION_FAN
 
-          if( thermostatAction == climate::CLIMATE_ACTION_IDLE ||
-              thermostatAction == climate::CLIMATE_ACTION_OFF) 
+          // If action is not CLIMATE_ACTION_COOLING, CLIMATE_ACTION_HEATING are processed up
+          //  1. Stop fan
+          if (funSpeed != 0) {
+            auto call = id(fun_speed).make_call();
+            call.set_option("0");
+            call.perform();
+          }
+
+          //  2. If temperature is higher than low and lower than high with 1 degrees duruing CLIMATE_ACTION_IDLE action 
+          //    OR any other action (CLIMATE_ACTION_OFF, CLIMATE_ACTION_DRYING, CLIMATE_ACTION_FAN) -> turn off bypass
+          if((targetTempLow < currTemp < targetTempHigh &&
+              currTemp - targetTempLow >= 1.0 &&
+              targetTempHigh - currTemp >= 1.0) || thermostatAction != climate::CLIMATE_ACTION_IDLE) 
           {
-              if (funSpeed != 0) {
-                auto call = id(fun_speed).make_call();
-                call.set_option("0");
-                call.perform();
-              }
-
-              if( dTt >= 1.0 || thermostatAction == climate::CLIMATE_ACTION_OFF)
-                  if (bypassState != 0) id(bypass).turn_off();
-              return;
+              if (bypassState != 0) id(bypass).turn_off();
           }
