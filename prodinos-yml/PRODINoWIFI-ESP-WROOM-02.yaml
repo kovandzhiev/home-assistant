@@ -1,0 +1,119 @@
+# Device: PRODINo WIFI-ESP WROOM-02 V1
+# https://kmpelectronics.eu/products/prodino-wifi-esp-wroom-02-v1/
+esphome:
+  name: esp8266-test
+  friendly_name: ESP8266_Test
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "/7BKHMTnPqYKQu62Fae3y2dSPdhREcdvXEWKISW0aLQ="
+
+ota:
+  password: "16141a48f99b6f9a73a186bce2802bd2"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Esp8266-Test Fallback Hotspot"
+    password: "01K19od8NFtW"
+
+captive_portal:
+
+spi:
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  miso_pin: GPIO12
+    
+mcp23s08:
+  - id: 'mcp23s08_hub'
+    cs_pin: GPIO15
+    deviceaddress: 0
+# Individual outputs
+switch:
+  - platform: gpio
+    name: "RELAY4"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 4
+      number: 4
+      mode: OUTPUT
+      inverted: False
+
+  - platform: gpio
+    name: "RELAY3"     
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 5
+      number: 5
+      mode: OUTPUT
+      inverted: False 
+      
+  - platform: gpio
+    name: "RELAY2"     
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 6
+      number: 6
+      mode: OUTPUT
+      inverted: False 
+      
+  - platform: gpio
+    name: "RELAY1"     
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 7
+      number: 7
+      mode: OUTPUT
+      inverted: False 
+      
+binary_sensor:
+  - platform: gpio
+    name: "INPUT1"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 3
+      number: 3
+      # One of INPUT or INPUT_PULLUP
+      mode: INPUT
+      inverted: True
+      
+  - platform: gpio
+    name: "INPUT2"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 2
+      number: 2
+      # One of INPUT or INPUT_PULLUP
+      mode: INPUT
+      inverted: True
+      
+  - platform: gpio
+    name: "INPUT3"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 1
+      number: 1
+      # One of INPUT or INPUT_PULLUP
+      mode: INPUT
+      inverted: True
+      
+  - platform: gpio
+    name: "INPUT4"
+    pin:
+      mcp23xxx: mcp23s08_hub
+      # Use pin number 0
+      number: 0
+      # One of INPUT or INPUT_PULLUP
+      mode: INPUT
+      inverted: True
+    
