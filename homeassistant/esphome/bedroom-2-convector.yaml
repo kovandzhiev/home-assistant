@@ -208,6 +208,13 @@ sensor:
       name: "Temperature"
       id: currentTemperature
       filters:
+        - calibrate_linear:
+            method: least_squares
+            datapoints:
+              # Map 0.0 (from sensor) to 1.0 (true value) MEASURED -> TRUTH
+              # Measure: Summer: 27.1 -> 27.0 
+              - 0.0 -> 0.0
+              - 25.0 -> 25.0
         - sliding_window_moving_average:
             window_size: 10
             send_every: 1
