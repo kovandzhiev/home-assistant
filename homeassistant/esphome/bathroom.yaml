@@ -1,10 +1,9 @@
 esphome:
-  name: toilet-device
-  friendly_name: Toilet Device
+  name: bathroom
+  friendly_name: bathroom
 
 esp8266:
   board: esp01_1m
-  restore_from_flash: True
 
 # Enable logging
 logger:
@@ -12,11 +11,11 @@ logger:
 # Enable Home Assistant API
 api:
   encryption:
-    key: "4Ovo+/4ZKrcAeaZC7IPI574VQrmSC6WQWbwtSBBQo+Q="
+    key: "QnARw9/sTg/sbX8umHHw2qfzJgWjQAp86DO+YBs4PT8="
 
 ota:
   - platform: esphome
-    password: "133755a618a8aa70d3cdfcc798c505a4"
+    password: "e26c5a143f596afdc488745a4a384d55"
 
 wifi:
   ssid: !secret wifi_ssid
@@ -24,8 +23,8 @@ wifi:
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Toilet-Device Fallback Hotspot"
-    password: "FcK2gDOu12MB"
+    ssid: "Bathroom Fallback Hotspot"
+    password: "GvC05x4qucdc"
 
 captive_portal:
 
@@ -38,6 +37,10 @@ globals: # Create global variable to be used later on
   - id: light_count
     type: int
     initial_value: '0'
+  - id: bypass_state # Store last bypass state
+    type: bool
+    restore_value: yes # Memorize the last state after restart
+    initial_value: 'false'
 
 spi:
   clk_pin: GPIO14
@@ -88,25 +91,54 @@ switch:
       mode: OUTPUT
       inverted: False
 
+  # Bypass control
   - platform: gpio
-    id: relay3
-    name: "RELAY3"
+    id: bypass_on
     internal: true
+    interlock: [bypass_off]
+    interlock_wait_time: 500ms
     pin:
       mcp23xxx: mcp23s08_hub
       number: 6
       mode: OUTPUT
       inverted: False
+    on_turn_on:
+      - globals.set:
+          id: bypass_state
+          value: 'true'
+      - delay: 10s
+      - switch.turn_off: bypass_on
+    disabled_by_default: true
 
   - platform: gpio
-    id: relay4
-    name: "RELAY4"
+    id: bypass_off
     internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 7
       mode: OUTPUT
       inverted: False
+    interlock: [bypass_on]
+    interlock_wait_time: 500ms
+    on_turn_on:
+      - globals.set:
+          id: bypass_state
+          value: 'false'
+      - delay: 10s
+      - switch.turn_off: bypass_off
+    disabled_by_default: true
+
+  # Virtual bypass
+  - platform: template
+    name: "Bypass"
+    id: bypass
+    optimistic: false
+    lambda: |-
+      return id(bypass_state);
+    turn_on_action:
+      - switch.turn_on: bypass_on
+    turn_off_action:
+      - switch.turn_on: bypass_off
 
 binary_sensor:
   - platform: gpio
@@ -124,13 +156,14 @@ binary_sensor:
   - platform: gpio
     id: door_sensor
     name: "Door Sensor"
-    internal: true
+    internal: False
     pin:
       mcp23xxx: mcp23s08_hub
       number: 1
       mode: INPUT
       inverted: True
-  #   on_press:
+    on_state:
+      - script.execute: light_timer
 
   - platform: gpio
     id: fan_button
@@ -154,7 +187,7 @@ binary_sensor:
       mode: INPUT
       inverted: True
 
-# >>> Tiolet devices logic
+# >>> Bathroom devices logic
 output:
   - platform: esp8266_pwm
     id: pwm_light
@@ -168,28 +201,54 @@ light:
     output: pwm_light
     restore_mode: ALWAYS_OFF
     on_turn_on:
-      - script.execute: light_timer
+      - switch.turn_on: relay_busy_light
+    on_turn_off: 
+      - switch.turn_off: relay_busy_light
 
 script:
   - id: light_timer
     mode: restart
     then:
-      - switch.turn_on: relay_busy_light
       - light.turn_on:
           id: main_light
           transition_length: 3s
-      - delay: 2min #10s
+      - delay: 1min
       - light.turn_off:
           id: main_light
-          transition_length: 60s #10s 
-      - switch.turn_off: relay_busy_light
+          transition_length: 30s
 
   - id: fan_timer
     mode: restart
     then:
       - switch.turn_on: relay_fan
-      - delay: 20min # 30min
+      - delay: 15min # 30min
       - switch.turn_off: relay_fan
+
+sensor:
+# Room themperature and humidity. DHT22 sensor
+  - platform: dht
+    pin: GPIO4
+    temperature:
+      name: "Temperature"
+      id: currentTemperature
+      filters:
+        - calibrate_linear:
+            method: least_squares
+            datapoints:
+              # Map 0.0 (from sensor) to 1.0 (true value) MEASURED -> TRUTH
+              - 0.0 -> 0.0
+              - 23.0 -> 22.2
+        - sliding_window_moving_average:
+            window_size: 10
+            send_every: 1
+    humidity:
+      name: "Humidity"
+      id: currentHumidity
+      filters:
+        - sliding_window_moving_average:
+            window_size: 10
+            send_every: 1
+    update_interval: 30s
 
 interval:
   - interval: 1min
@@ -208,5 +267,11 @@ interval:
           if (id(light_count) >= 5) {
             ESP_LOGI("interval", "Light ON >= 5min -> Starting fan_timer");
             id(light_count) = 0;
+            id(fan_timer).execute();
+          }
+
+          // Checking humidity
+          if (id(currentHumidity).state > 70.0) {
+            ESP_LOGI("interval", "Humidity %.1f%% > 70%% -> Starting fan_timer", id(currentHumidity).state);
             id(fan_timer).execute();
           }

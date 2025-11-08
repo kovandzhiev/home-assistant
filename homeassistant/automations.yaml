@@ -149,6 +149,14 @@
     device_id: 15d93aa0c2419d6308ca66f15ac335e8
     entity_id: a1fd3ae81ec1d5a46c30610a081a6e4c
     domain: switch
+  - type: turn_on
+    device_id: 8a0b41f0fba7b88664fc94d610132911
+    entity_id: 3a0642178f49f8cfd6f7f251fd15cf15
+    domain: switch
+  - type: turn_on
+    device_id: 178f4b6a41474bec7c998d29b08e0a5f
+    entity_id: 344b79f18be86113ca7e41923a722735
+    domain: switch
   mode: single
 - id: '1742239704986'
   alias: 06:00 часа
@@ -166,6 +174,14 @@
     device_id: 15d93aa0c2419d6308ca66f15ac335e8
     entity_id: a1fd3ae81ec1d5a46c30610a081a6e4c
     domain: switch
+  - type: turn_off
+    device_id: 8a0b41f0fba7b88664fc94d610132911
+    entity_id: 3a0642178f49f8cfd6f7f251fd15cf15
+    domain: switch
+  - type: turn_off
+    device_id: 178f4b6a41474bec7c998d29b08e0a5f
+    entity_id: 344b79f18be86113ca7e41923a722735
+    domain: switch
   mode: single
 - id: '1746177810944'
   alias: Turn on corridor light when some door is open
@@ -173,6 +189,8 @@
   triggers:
   - entity_id:
     - binary_sensor.corridor_common_door_sensor
+    - binary_sensor.bathroom_door_sensor
+    - binary_sensor.wet_room_door_sensor
     trigger: state
   conditions: []
   actions:

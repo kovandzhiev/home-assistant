@@ -1,10 +1,9 @@
 esphome:
-  name: toilet-device
-  friendly_name: Toilet Device
+  name: wet-room
+  friendly_name: wet-room
 
 esp8266:
   board: esp01_1m
-  restore_from_flash: True
 
 # Enable logging
 logger:
@@ -12,11 +11,11 @@ logger:
 # Enable Home Assistant API
 api:
   encryption:
-    key: "4Ovo+/4ZKrcAeaZC7IPI574VQrmSC6WQWbwtSBBQo+Q="
+    key: "2yo0FCbkjZwgaIp78c6OHvAfmsXJkPFj3f/xCArzULY="
 
 ota:
   - platform: esphome
-    password: "133755a618a8aa70d3cdfcc798c505a4"
+    password: "3667d4eda875201743b72efc11129f13"
 
 wifi:
   ssid: !secret wifi_ssid
@@ -24,8 +23,8 @@ wifi:
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Toilet-Device Fallback Hotspot"
-    password: "FcK2gDOu12MB"
+    ssid: "Wet-Room Fallback Hotspot"
+    password: "xz8Ah2QiNjsm"
 
 captive_portal:
 
@@ -80,8 +79,9 @@ switch:
       inverted: False
 
   - platform: gpio
-    id: relay_busy_light
-    name: "Busy Light"
+    id: relay2
+    name: "RELAY2"
+    internal: true
     pin:
       mcp23xxx: mcp23s08_hub
       number: 5
@@ -112,7 +112,7 @@ binary_sensor:
   - platform: gpio
     id: pir_sensor
     name: "PIR Sensor"
-    internal: true
+    internal: True
     pin:
       mcp23xxx: mcp23s08_hub
       number: 0
@@ -124,18 +124,19 @@ binary_sensor:
   - platform: gpio
     id: door_sensor
     name: "Door Sensor"
-    internal: true
+    internal: False
     pin:
       mcp23xxx: mcp23s08_hub
       number: 1
       mode: INPUT
       inverted: True
-  #   on_press:
+    on_state:
+      - script.execute: light_timer
 
   - platform: gpio
     id: fan_button
     name: "Fan Button"
-    internal: true
+    internal: True
     pin:
       mcp23xxx: mcp23s08_hub
       number: 2
@@ -147,14 +148,14 @@ binary_sensor:
   - platform: gpio
     id: input4
     name: "INPUT4"
-    internal: true
+    internal: True
     pin:
       mcp23xxx: mcp23s08_hub
       number: 3
       mode: INPUT
       inverted: True
 
-# >>> Tiolet devices logic
+# >>> Wet-room devices logic
 output:
   - platform: esp8266_pwm
     id: pwm_light
@@ -174,22 +175,46 @@ script:
   - id: light_timer
     mode: restart
     then:
-      - switch.turn_on: relay_busy_light
       - light.turn_on:
           id: main_light
           transition_length: 3s
-      - delay: 2min #10s
+      - delay: 1min
       - light.turn_off:
           id: main_light
-          transition_length: 60s #10s 
-      - switch.turn_off: relay_busy_light
+          transition_length: 30s
 
   - id: fan_timer
     mode: restart
     then:
       - switch.turn_on: relay_fan
-      - delay: 20min # 30min
+      - delay: 30min
       - switch.turn_off: relay_fan
+
+sensor:
+# Room themperature and humidity. DHT22 sensor
+  - platform: dht
+    pin: GPIO4
+    temperature:
+      name: "Temperature"
+      id: currentTemperature
+      filters:
+        - calibrate_linear:
+            method: least_squares
+            datapoints:
+              # Map 0.0 (from sensor) to 1.0 (true value) MEASURED -> TRUTH
+              - 0.0 -> 0.0
+              - 22.0 -> 22.0
+        - sliding_window_moving_average:
+            window_size: 10
+            send_every: 1
+    humidity:
+      name: "Humidity"
+      id: currentHumidity
+      filters:
+        - sliding_window_moving_average:
+            window_size: 10
+            send_every: 1
+    update_interval: 30s
 
 interval:
   - interval: 1min
@@ -208,5 +233,11 @@ interval:
           if (id(light_count) >= 5) {
             ESP_LOGI("interval", "Light ON >= 5min -> Starting fan_timer");
             id(light_count) = 0;
+            id(fan_timer).execute();
+          }
+
+          // Checking humidity
+          if (id(currentHumidity).state > 70.0) {
+            ESP_LOGI("interval", "Humidity %.1f%% > 70%% -> Starting fan_timer", id(currentHumidity).state);
             id(fan_timer).execute();
           }
