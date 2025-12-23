@@ -18,13 +18,17 @@ ota:
     password: "3667d4eda875201743b72efc11129f13"
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  min_auth_mode: WPA2
+  networks:
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+    hidden: true
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Wet-Room Fallback Hotspot"
     password: "xz8Ah2QiNjsm"
+    ap_timeout: 150s
 
 captive_portal:
 

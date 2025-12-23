@@ -51,6 +51,10 @@
   - trigger: time
     at: 07:30:00
   conditions:
+  - condition: state
+    entity_id: automation.praznik_9_chasa_sutrin
+    state:
+    - 'off'
   - condition: time
     weekday:
     - mon
