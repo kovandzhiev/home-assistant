@@ -19,13 +19,17 @@ ota:
     password: "133755a618a8aa70d3cdfcc798c505a4"
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  min_auth_mode: WPA2
+  networks:
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+    hidden: true
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Toilet-Device Fallback Hotspot"
     password: "FcK2gDOu12MB"
+    ap_timeout: 150s
 
 captive_portal:
 

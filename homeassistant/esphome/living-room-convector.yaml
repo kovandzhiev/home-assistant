@@ -22,13 +22,17 @@ ota:
     password: "c3ee9d1136bf68ab033e911b55fa8385"
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  min_auth_mode: WPA2
+  networks:
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+    hidden: true
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Hall Fallback Hotspot"
     password: "s0gcoxjNEDK9"
+    ap_timeout: 150s
 
 captive_portal:
 
@@ -274,7 +278,7 @@ interval:
           float targetTempLow = id(room_thermostat).target_temperature_low;
           float targetTempHigh = id(room_thermostat).target_temperature_high;
           float coilTemp = id(fanCoilTemperature).state;
-          int funSpeed = atoi(id(fun_speed).state.c_str());
+          int funSpeed = atoi(id(fun_speed).current_option());
           bool bypassState = id(bypass).state;
           int thermostatAction = id(room_thermostat).action;
           bool climateLockoutActive = id(climate_lockout_active_state);

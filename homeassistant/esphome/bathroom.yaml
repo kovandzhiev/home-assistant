@@ -3,7 +3,8 @@ esphome:
   friendly_name: bathroom
 
 esp8266:
-  board: esp01_1m
+  board: esp_wroom_02
+  restore_from_flash: True
 
 # Enable logging
 logger:
@@ -18,13 +19,17 @@ ota:
     password: "e26c5a143f596afdc488745a4a384d55"
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  min_auth_mode: WPA2
+  networks:
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+    hidden: true
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Bathroom Fallback Hotspot"
     password: "GvC05x4qucdc"
+    ap_timeout: 150s
 
 captive_portal:
 
@@ -40,7 +45,6 @@ globals: # Create global variable to be used later on
   - id: bypass_state # Store last bypass state
     type: bool
     restore_value: yes # Memorize the last state after restart
-    initial_value: 'false'
 
 spi:
   clk_pin: GPIO14
@@ -108,7 +112,6 @@ switch:
           value: 'true'
       - delay: 10s
       - switch.turn_off: bypass_on
-    disabled_by_default: true
 
   - platform: gpio
     id: bypass_off
@@ -126,12 +129,12 @@ switch:
           value: 'false'
       - delay: 10s
       - switch.turn_off: bypass_off
-    disabled_by_default: true
 
   # Virtual bypass
   - platform: template
     name: "Bypass"
     id: bypass
+    restore_mode: DISABLED
     optimistic: false
     lambda: |-
       return id(bypass_state);
@@ -221,7 +224,7 @@ script:
     mode: restart
     then:
       - switch.turn_on: relay_fan
-      - delay: 15min # 30min
+      - delay: 10min # 30min
       - switch.turn_off: relay_fan
 
 sensor:
@@ -263,8 +266,8 @@ interval:
             ESP_LOGI("interval", "Light is OFF -> light_count reset");
           }
 
-          // Is light is being ON more than or equal 5 minutes start fan
-          if (id(light_count) >= 5) {
+          // Is light is being ON more than or equal 6 minutes start fan
+          if (id(light_count) >= 6) {
             ESP_LOGI("interval", "Light ON >= 5min -> Starting fan_timer");
             id(light_count) = 0;
             id(fan_timer).execute();
