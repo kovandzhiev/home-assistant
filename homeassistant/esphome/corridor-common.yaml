@@ -107,8 +107,7 @@ binary_sensor:
 
   - platform: gpio
     id: input2
-    name: "INPUT2"
-    internal: true
+    name: "External Power"
     pin:
       mcp23xxx: mcp23s08_hub
       number: 1
