@@ -1,9 +1,13 @@
+# Мокро пмещение
 esphome:
   name: wet-room
   friendly_name: wet-room
 
 esp8266:
-  board: esp01_1m
+  board: esp_wroom_02
+  restore_from_flash: True
+  framework: 
+    version: recommended
 
 # Enable logging
 logger:
@@ -38,6 +42,10 @@ globals: # Create global variable to be used later on
     type: bool
     restore_value: no
     initial_value: 'false'
+  - id: is_external_power # Store state of external power (true = available)
+    type: bool
+    restore_value: no
+    initial_value: 'true'
   - id: light_count
     type: int
     initial_value: '0'
@@ -59,19 +67,31 @@ switch:
     lambda: |-
       return id(is_night_time);
     turn_on_action:
-      - logger.log: "Night time swithch is on"
-      - light.control:
-          id: main_light
-          brightness: 50%
+      - logger.log: "Night time switch is on"
       - lambda: |-
-          id(is_night_time) = true; // Night time is set
+          id(is_night_time) = true;
+      - script.execute: update_brightness
     turn_off_action:
-      - logger.log: "Night time swithch is off"
-      - light.control:
-          id: main_light
-          brightness: 100%
+      - logger.log: "Night time switch is off"
       - lambda: |-
-          id(is_night_time) = false; // Day time is set
+          id(is_night_time) = false;
+      - script.execute: update_brightness
+
+  - platform: template
+    id: external_power
+    name: "External power switch"
+    lambda: |-
+      return id(is_external_power);
+    turn_on_action:
+      - logger.log: "External power switch is on"
+      - lambda: |-
+          id(is_external_power) = true;
+      - script.execute: update_brightness
+    turn_off_action:
+      - logger.log: "External power switch is off"
+      - lambda: |-
+          id(is_external_power) = false;
+      - script.execute: update_brightness
 
   - platform: gpio
     id: relay_fan
@@ -176,6 +196,16 @@ light:
       - script.execute: light_timer
 
 script:
+  - id: update_brightness
+    then:
+      - lambda: |-
+          float night_br = id(is_night_time) ? 0.5 : 1.0;
+          float ext_br = id(is_external_power) ? 1.0 : 0.5;
+          float brightness = (night_br < ext_br) ? night_br : ext_br;
+          auto call = id(main_light).make_call();
+          call.set_brightness(brightness);
+          call.perform();
+
   - id: light_timer
     mode: restart
     then:
