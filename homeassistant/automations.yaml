@@ -457,6 +457,42 @@
       action: switch.turn_off
       data: {}
   mode: single
+- id: '1767862504800'
+  alias: External Power Switch Sync
+  description: Синхронизира External power switch на всички устройства с осветление спрямо
+    състоянието на External Power сензора
+  triggers:
+  - entity_id:
+    - binary_sensor.corridor_common_external_power
+    trigger: state
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.corridor_common_external_power
+        state: 'on'
+      sequence:
+      - target:
+          entity_id:
+          - switch.corridor_lights_external_power_switch
+          - switch.wet_room_external_power_switch
+          - switch.bathroom_external_power_switch
+          - switch.toilet_device_external_power_switch
+        action: switch.turn_on
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.corridor_common_external_power
+        state: 'off'
+      sequence:
+      - target:
+          entity_id:
+          - switch.corridor_lights_external_power_switch
+          - switch.wet_room_external_power_switch
+          - switch.bathroom_external_power_switch
+          - switch.toilet_device_external_power_switch
+        action: switch.turn_off
+  mode: single
 - id: '1767862504846'
   alias: 11:00 часа ПВСЧП
   description: ''
