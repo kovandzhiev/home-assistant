@@ -1,4 +1,4 @@
-# Всекидневна
+# Всекидневна конвектор
 esphome:
   name: sitting-room-convector
   friendly_name: Sittingroom convector
@@ -219,8 +219,8 @@ sensor:
             datapoints:
               # Map 0.0 (from sensor) to 1.0 (true value) MEASURED -> TRUTH
               # Measure: Summer: 27.0 -> 26.6
-              - 0.0 -> 0.3
-              - 27.0 -> 26.6
+              - 0.0 -> 0.0
+              - 22.3 -> 22.8 # Winter 2026.03
         - sliding_window_moving_average:
             window_size: 10
             send_every: 1
@@ -278,7 +278,7 @@ interval:
           float targetTempLow = id(room_thermostat).target_temperature_low;
           float targetTempHigh = id(room_thermostat).target_temperature_high;
           float coilTemp = id(fanCoilTemperature).state;
-          int funSpeed = atoi(id(fun_speed).current_option());
+          int funSpeed = atoi(id(fun_speed).current_option().c_str());
           bool bypassState = id(bypass).state;
           int thermostatAction = id(room_thermostat).action;
           bool climateLockoutActive = id(climate_lockout_active_state);
